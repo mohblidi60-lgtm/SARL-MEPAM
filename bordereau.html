@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bordereau de Remise de Chèques – SGA</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --red:#e2001a; --black:#1a1a1a; --gl:#f5f5f5; --gm:#ccc; --gd:#666;
+  --white:#fff; --border:1px solid #aaa;
+  --font:'IBM Plex Sans',sans-serif; --mono:'IBM Plex Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:#d6d6d6;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:24px 16px 80px}
+.app{width:100%;max-width:980px;display:flex;flex-direction:column;gap:16px}
+
+/* TOOLBAR */
+.toolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;background:var(--black);padding:10px 16px;border-radius:4px}
+.toolbar-left{display:flex;align-items:center;gap:12px}
+.toolbar-left h1{font-size:13px;font-weight:600;color:var(--white);letter-spacing:.05em;text-transform:uppercase}
+.toolbar-actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 15px;border-radius:3px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;border:none;transition:opacity .15s,transform .1s;letter-spacing:.03em;white-space:nowrap}
+.btn:hover{opacity:.85}.btn:active{transform:scale(.97)}
+.btn-red{background:var(--red);color:var(--white)}
+.btn-white{background:var(--white);color:var(--black)}
+.btn-outline{background:transparent;color:var(--white);border:1.5px solid rgba(255,255,255,.45)}
+.btn-outline:hover{background:rgba(255,255,255,.12);opacity:1}
+
+/* TABS */
+.tabs{display:flex;background:var(--white);border-radius:4px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.tab{flex:1;padding:10px 0;text-align:center;font-size:12px;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;color:var(--gd);transition:all .15s;text-transform:uppercase;letter-spacing:.05em}
+.tab.active{color:var(--red);border-bottom-color:var(--red);background:var(--gl)}
+.tab:hover:not(.active){background:#f9f9f9}
+
+/* VIEWS */
+.view{display:none}.view.active{display:block}
+
+/* PAPER */
+.paper{background:var(--white);box-shadow:0 4px 20px rgba(0,0,0,.18);padding:28px 32px 32px;border-top:4px solid var(--red)}
+
+/* DOC HEADER */
+.doc-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;gap:12px}
+.sga-logo{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.sga-logo-text .l1{font-size:14px;font-weight:700;color:var(--black);letter-spacing:.01em}
+.sga-logo-text .l2{font-size:11px;font-weight:400;color:var(--gd)}
+.doc-title{flex:1;text-align:center;font-size:15px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--black);padding-top:8px}
+.doc-meta{text-align:right;min-width:175px}
+.meta-row{display:flex;align-items:center;gap:6px;justify-content:flex-end;margin-bottom:6px}
+.meta-row span{font-size:11px;font-weight:600;color:var(--black)}
+.meta-input{font-family:var(--mono);font-size:11px;border:none;border-bottom:1.5px solid var(--black);outline:none;background:transparent;color:var(--black);width:120px;text-align:center;padding:2px 4px}
+.raison-box{border:1.5px solid var(--black);padding:5px 8px;margin-top:6px;text-align:center}
+.raison-box label{font-size:8px;font-weight:700;text-transform:uppercase;color:var(--gd);display:block;margin-bottom:3px;letter-spacing:.06em}
+.raison-box input{font-family:var(--font);font-size:13px;font-weight:700;border:none;outline:none;background:transparent;color:var(--black);text-align:center;width:100%}
+
+/* TABLE */
+.cheques-table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:18px}
+.cheques-table th{background:var(--black);color:var(--white);text-transform:uppercase;font-size:9px;font-weight:600;letter-spacing:.07em;padding:7px 8px;text-align:left;border:1px solid var(--black)}
+.cheques-table td{border:var(--border);padding:0}
+.cheques-table td input,.cheques-table td select{width:100%;height:32px;border:none;outline:none;padding:0 7px;font-family:var(--font);font-size:11px;background:transparent;color:var(--black);transition:background .1s}
+.cheques-table td input:focus,.cheques-table td select:focus{background:#fff8f0}
+.cheques-table tr:nth-child(even) td{background:var(--gl)}
+.cheques-table tr:nth-child(even) td input,.cheques-table tr:nth-child(even) td select{background:transparent}
+.cheques-table tr:nth-child(even) td input:focus,.cheques-table tr:nth-child(even) td select:focus{background:#fff8f0}
+.col-etab{width:21%}.col-lieu{width:13%}.col-tire{width:22%}.col-num{width:13%}.col-dz{width:15%}.col-cts{width:8%}.col-del{width:8%;text-align:center}
+.amount-input{text-align:right!important;font-family:var(--mono)!important;letter-spacing:.02em}
+.num-input{font-family:var(--mono)!important;letter-spacing:.02em}
+.del-btn{width:26px;height:26px;background:transparent;border:1.5px solid var(--gm);border-radius:2px;cursor:pointer;color:var(--gd);font-size:14px;display:flex;align-items:center;justify-content:center;margin:0 auto;transition:all .12s}
+.del-btn:hover{background:var(--red);border-color:var(--red);color:white}
+.add-row-wrap{text-align:center;margin:8px 0 16px}
+.add-row-btn{font-family:var(--font);font-size:11px;font-weight:600;color:var(--red);background:transparent;border:1.5px dashed var(--red);padding:5px 18px;cursor:pointer;letter-spacing:.04em;text-transform:uppercase;transition:all .12s}
+.add-row-btn:hover{background:var(--red);color:white}
+
+/* FOOTER */
+.doc-footer{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:14px}
+.footer-left{display:flex;flex-direction:column;gap:9px}
+.footer-field{display:flex;align-items:center;gap:7px}
+.footer-field label{font-size:10px;font-weight:600;text-transform:uppercase;color:var(--gd);white-space:nowrap}
+.footer-field .val{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--black);border-bottom:1.5px solid var(--black);min-width:36px;padding:2px 4px;text-align:center}
+.compte-input{font-family:var(--mono);font-size:12px;font-weight:600;border:none;border-bottom:1.5px solid var(--black);outline:none;background:transparent;color:var(--black);width:200px;padding:2px 4px}
+.total-block{display:flex;align-items:center;gap:10px}
+.total-block label{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em}
+.total-box{display:flex;align-items:stretch;border:2px solid var(--black);gap:0}
+.total-dzd{font-family:var(--mono);font-size:15px;font-weight:700;color:var(--black);padding:5px 10px;min-width:110px;text-align:right;background:var(--gl);border-right:2px solid var(--black)}
+.total-sep{display:none}
+.total-cents{font-family:var(--mono);font-size:15px;font-weight:700;padding:5px 8px;min-width:40px;text-align:center;background:var(--white)}
+.cachet-box{border:1.5px dashed var(--gm);padding:12px 18px;text-align:center;min-width:150px}
+.cachet-box span{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--gd);font-weight:600}
+
+/* HISTORY */
+.history-panel{background:var(--white);box-shadow:0 4px 20px rgba(0,0,0,.12);border-radius:2px;overflow:hidden}
+.history-header{background:var(--black);color:var(--white);padding:14px 20px;display:flex;justify-content:space-between;align-items:center}
+.history-header h2{font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.hist-count{font-size:11px;color:rgba(255,255,255,.6)}
+.history-empty{padding:40px;text-align:center;color:var(--gd);font-size:13px}
+.hist-item{display:grid;grid-template-columns:auto 1fr auto auto auto;gap:14px;align-items:center;padding:14px 20px;border-bottom:1px solid #eee;transition:background .1s}
+.hist-item:hover{background:var(--gl)}
+.hist-num{width:28px;height:28px;background:var(--red);color:white;font-size:11px;font-weight:700;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.hist-info{display:flex;flex-direction:column;gap:3px}
+.hist-info .h-raison{font-size:13px;font-weight:600;color:var(--black)}
+.hist-info .h-detail{font-size:11px;color:var(--gd)}
+.hist-date{font-size:11px;color:var(--gd);font-family:var(--mono);white-space:nowrap}
+.hist-total{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--black);white-space:nowrap;text-align:right}
+.hist-actions{display:flex;gap:6px}
+.hist-btn{padding:5px 10px;font-size:11px;font-weight:600;font-family:var(--font);cursor:pointer;border-radius:2px;border:none;transition:opacity .12s}
+.hist-btn:hover{opacity:.8}
+.hist-btn-load{background:var(--black);color:white}
+.hist-btn-del{background:#fee;color:var(--red);border:1px solid #fcc}
+
+/* hidden in screen, shown in print */
+.print-only{display:none}
+
+/* PRINT */
+@page { size: A4 portrait; margin: 10mm 10mm; }
+@media print {
+  body{background:white;padding:0;display:block}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .toolbar,.tabs,.view#view-history,.add-row-wrap,.no-print{display:none!important}
+  .del-btn{display:none!important}
+  .col-del{display:none!important}
+  th.col-del{display:none!important}
+  .app{max-width:100%;gap:0}
+  .view#view-form{display:block!important}
+  .paper{box-shadow:none;border-top:none;padding:10px 14px;page-break-inside:avoid;border:none}
+  .print-only{display:block!important}
+  .copy-label{font-size:6.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#aaa;text-align:right;margin-bottom:3px}
+  .copy-divider{border:none;border-top:1.5px dashed #bbb;margin:16px 0 0;position:relative}
+  .copy-divider::after{content:"✂  Découper ici  ✂";position:absolute;top:-7px;left:50%;transform:translateX(-50%);background:white;padding:0 10px;font-size:7px;color:#bbb;letter-spacing:.1em;text-transform:uppercase}
+  input,select{pointer-events:none;background:transparent!important;border:none!important;-webkit-appearance:none;appearance:none}
+  input::placeholder{color:transparent!important;opacity:0!important}
+  select{color:var(--black)}
+  .cheques-table td select{color:var(--black)}
+  .cheques-table td select.empty-sel{color:transparent!important;opacity:0}
+  .cheques-table td input,.cheques-table td select,.meta-input,.compte-input,.raison-box input{background:transparent!important}
+  /* Hide empty rows in print */
+  .cheques-table tbody tr.empty-row{display:none!important}
+  /* ── Compact but readable font sizes ── */
+  .doc-header{margin-bottom:10px}
+  .sga-logo img{height:34px!important}
+  .sga-logo-text .l1{font-size:8.5pt}
+  .sga-logo-text .l2{font-size:7pt}
+  .doc-title{font-size:9.5pt;letter-spacing:.04em;padding-top:5px}
+  .raison-box{padding:4px 7px;margin-top:5px}
+  .raison-box label{font-size:6.5pt;margin-bottom:2px}
+  .raison-box input{font-size:9pt}
+  .meta-row{margin-bottom:4px}
+  .meta-row span{font-size:8pt}
+  .meta-input{font-size:8pt;width:100px}
+  .cheques-table{font-size:8pt;margin-bottom:12px}
+  .cheques-table th{font-size:7pt;padding:5px 6px;letter-spacing:.04em}
+  .cheques-table td input,.cheques-table td select{font-size:8pt;height:24px;padding:3px 5px}
+  .doc-footer{gap:10px}
+  .footer-left{gap:8px}
+  .footer-field label{font-size:7.5pt}
+  .footer-field .val{font-size:10pt}
+  .compte-input{font-size:8pt;width:175px}
+  .total-block label{font-size:9pt}
+  .total-dzd,.total-cents{font-size:11pt;padding:4px 10px}
+  .total-dzd{min-width:95px}
+  .total-cents{min-width:34px}
+  .cachet-box{padding:20px 24px 32px;min-width:155px;min-height:70px}
+  .cachet-box span{font-size:7.5pt}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- TOOLBAR -->
+<div class="toolbar no-print">
+  <div class="toolbar-left">
+    <img src="data:image/png;base64,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" alt="SGA" style="height:24px;width:auto;display:block">
+    <h1>Bordereau de Remise de Chèques</h1>
+  </div>
+  <div class="toolbar-actions">
+    <button class="btn btn-outline" onclick="switchTab('form')">✏️ Formulaire</button>
+    <button class="btn btn-outline" onclick="switchTab('history')">📚 Historique</button>
+    <button class="btn btn-white" onclick="saveToHistory()">💾 Enregistrer</button>
+    <button class="btn btn-outline" onclick="resetForm()">↺ Nouveau</button>
+    <button class="btn btn-red" onclick="window.print()">🖨 Imprimer (×2)</button>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs no-print">
+  <div class="tab active" id="tab-form" onclick="switchTab('form')">✏️ Formulaire</div>
+  <div class="tab" id="tab-history" onclick="switchTab('history')">📚 Historique des bordereaux</div>
+</div>
+
+<!-- VIEW: FORM -->
+<div class="view active" id="view-form">
+<div class="paper" id="printArea">
+
+  <!-- COPY 1 LABEL (print only) -->
+  <div class="print-only copy-label">Exemplaire Banque</div>
+
+  <!-- DOC HEADER -->
+  <div class="doc-header">
+    <div class="sga-logo">
+      <img src="data:image/png;base64,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" alt="Société Générale Algérie" style="height:52px;width:auto;display:block">
+      <div class="sga-logo-text">
+        <div class="l1">SOCIÉTÉ GÉNÉRALE</div>
+        <div class="l2">ALGÉRIE</div>
+      </div>
+    </div>
+    <div class="doc-title">BORDEREAU DE REMISE DE CHÈQUES</div>
+    <div class="doc-meta">
+      <div class="meta-row">
+        <span>DATE :</span>
+        <input type="date" class="meta-input" id="docDate" style="width:126px" onchange="buildCopy2()">
+      </div>
+      <div class="raison-box">
+        <label>NOM OU RAISON SOCIALE</label>
+        <input type="text" id="raisonSociale" placeholder="SARL …" autocomplete="off" oninput="buildCopy2()">
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <table class="cheques-table">
+    <thead>
+      <tr>
+        <th class="col-etab">ÉTABLISSEMENT PAYEUR</th>
+        <th class="col-lieu">LIEU DE PAIEMENT</th>
+        <th class="col-tire">NOM DU TIRÉ</th>
+        <th class="col-num">N° CHÈQUES</th>
+        <th class="col-dz" colspan="2">MONTANT EN DZD</th>
+        <th class="col-del no-print"></th>
+      </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+
+  <div class="add-row-wrap no-print">
+    <button class="add-row-btn" onclick="addRow()">+ Ajouter un chèque</button>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="doc-footer">
+    <div class="footer-left">
+      <div class="footer-field">
+        <label>Nombre de chèques :</label>
+        <div class="val" id="nbCheques">0</div>
+      </div>
+      <div class="footer-field">
+        <label>N° Compte :</label>
+        <input type="text" class="compte-input" id="numCompte" placeholder="021 00025 XXXXXXXXXX XX" autocomplete="off" oninput="buildCopy2()">
+      </div>
+    </div>
+    <div class="total-block">
+      <label>TOTAL :</label>
+      <div class="total-box">
+        <div class="total-dzd" id="totalDzd">0</div>
+        <div class="total-sep"></div>
+        <div class="total-cents" id="totalCents">00</div>
+      </div>
+    </div>
+    <div class="cachet-box">
+      <span>Cachet &amp; Signature</span>
+    </div>
+  </div>
+
+  <!-- COPY 2 (print only) -->
+  <div class="print-only">
+    <div class="copy-divider"></div>
+    <div style="height:14px"></div>
+    <div class="copy-label">Exemplaire Client</div>
+    <div id="printCopy2"></div>
+  </div>
+
+</div><!-- /paper -->
+</div><!-- /view-form -->
+
+<!-- VIEW: HISTORY -->
+<div class="view" id="view-history">
+  <div class="history-panel">
+    <div class="history-header">
+      <h2>📚 Historique des Bordereaux</h2>
+      <span class="hist-count" id="histCount">0 bordereau(x)</span>
+    </div>
+    <div id="historyList"></div>
+  </div>
+</div>
+
+</div><!-- /app -->
+<script>
+const BANKS=['FRANSABANK EL DJAZAIR','ARAB BANK','BEA','BNA','CPA','BDL','BADR','CNEP-BANQUE',
+  'SOCIETE GENERALE ALGERIE','BNP PARIBAS EL DJAZAIR','NATIXIS ALGERIE','CITIBANK',
+  'GULF BANK ALGERIA','AL BARAKA BANK','TRUST BANK','AGB','HOUSING BANK','AUTRE'];
+
+let rows=[];
+let history=JSON.parse(localStorage.getItem('sgaBordereaux')||'[]');
+
+function makeRow(){return{etab:'',lieu:'ALGER',tire:'',num:'',dzd:'',cts:'00'};}
+function esc(v){return String(v||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
+
+function init(){
+  document.getElementById('docDate').value=new Date().toISOString().slice(0,10);
+  for(let i=0;i<4;i++) rows.push(makeRow());
+  render();renderHistory();
+}
+
+function render(){
+  const tb=document.getElementById('tableBody');
+  tb.innerHTML='';
+  rows.forEach((r,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td class="col-etab"><select onchange="upd(${i},'etab',this.value)">
+        <option value="">-- Banque --</option>
+        ${BANKS.map(b=>`<option value="${b}"${r.etab===b?' selected':''}>${b}</option>`).join('')}
+      </select></td>
+      <td class="col-lieu"><input type="text" value="${esc(r.lieu)}" placeholder="Lieu" onchange="upd(${i},'lieu',this.value)"></td>
+      <td class="col-tire"><input type="text" value="${esc(r.tire)}" placeholder="Nom du tiré" onchange="upd(${i},'tire',this.value)"></td>
+      <td class="col-num"><input type="text" value="${esc(r.num)}" placeholder="N° chèque" class="num-input" onchange="upd(${i},'num',this.value)"></td>
+      <td class="col-dz"><input type="text" value="${fmtNum(r.dzd)}" placeholder="0" class="amount-input" onchange="upd(${i},'dzd',unFmt(this.value));this.value=fmtNum(unFmt(this.value))" oninput="debCalc()" onfocus="this.value=unFmt(this.value)" onblur="this.value=fmtNum(unFmt(this.value))"></td>
+      <td class="col-cts"><input type="text" value="${esc(r.cts)}" placeholder="00" class="amount-input" maxlength="2" onchange="upd(${i},'cts',this.value)" oninput="debCalc()"></td>
+      <td class="col-del no-print"><button class="del-btn" onclick="removeRow(${i})">×</button></td>`;
+    tb.appendChild(tr);
+  });
+  calcTotals();buildCopy2();
+}
+
+function fmtNum(v){const n=parseInt(String(v||'').replace(/\D/g,''))||0;return n>0?n.toLocaleString('fr-DZ'):'';}
+function unFmt(v){return String(v||'').replace(/[^\d]/g,'');}
+function upd(i,f,v){rows[i][f]=v;calcTotals();buildCopy2();}
+function addRow(){rows.push(makeRow());render();document.querySelectorAll('#tableBody tr:last-child select')[0]?.focus();}
+function removeRow(i){if(rows.length<=1)return;rows.splice(i,1);render();}
+
+function calcTotals(){
+  let tc=0,nb=0;
+  rows.forEach(r=>{const d=parseInt(r.dzd.replace(/\D/g,''))||0;const c=parseInt(r.cts)||0;if(d>0||c>0)nb++;tc+=d*100+c;});
+  const tCts=tc%100;
+  document.getElementById('nbCheques').textContent=nb||rows.length;
+  document.getElementById('totalDzd').textContent=Math.floor(tc/100).toLocaleString('fr-DZ');
+  const centsEl=document.getElementById('totalCents');
+  centsEl.textContent=String(tCts).padStart(2,'0');
+  centsEl.style.color = '';
+}
+
+let ct;function debCalc(){clearTimeout(ct);ct=setTimeout(()=>{calcTotals();buildCopy2();},150);}
+
+/* Build static copy2 for print */
+function buildCopy2(){
+  // ── Date formatted as DD/MM/YYYY ──
+  const rawDate=document.getElementById('docDate').value;
+  const dateFmt=rawDate?rawDate.split('-').reverse().join('/'):'-';
+  const raison=document.getElementById('raisonSociale').value||'';
+  const compte=document.getElementById('numCompte').value||'';
+  const nb=document.getElementById('nbCheques').textContent;
+  const tDzd=document.getElementById('totalDzd').textContent;
+  // ── Total centimes computed fresh ──
+  let tc2=0;rows.forEach(r=>{tc2+=(parseInt(String(r.dzd||'').replace(/\D/g,''))||0)*100+(parseInt(r.cts)||0);});
+  const tCtsNum=tc2%100;
+  const tCtsColor='#1a1a1a';
+  const tCtsStr=String(tCtsNum).padStart(2,'0');
+  const S='border:1px solid #aaa;padding:2px 4px;font-size:7.5pt';
+  // ── Only rows that have at least a bank or amount ──
+  const filledRows=rows.filter(r=>r.etab||r.tire||r.num||(parseInt(String(r.dzd||'').replace(/\D/g,''))||0)>0);
+  const rowsHtml=filledRows.map(r=>{
+    const dzdN=parseInt(String(r.dzd||'').replace(/\D/g,''))||0;
+    const dzdFmt=dzdN>0?dzdN.toLocaleString('fr-DZ'):'';
+    // Show centimes only if row has an amount and cts is meaningful
+    const ctsN=parseInt(r.cts)||0;
+    const ctsStr=(dzdN>0||ctsN>0)?String(ctsN).padStart(2,'0'):'';
+    return`<tr>
+    <td style="${S}">${r.etab||''}</td>
+    <td style="${S}">${r.lieu||''}</td>
+    <td style="${S}">${r.tire||''}</td>
+    <td style="${S};font-family:monospace">${r.num||''}</td>
+    <td style="${S};text-align:right;font-family:monospace">${dzdFmt}</td>
+    <td style="${S};text-align:right;font-family:monospace">${ctsStr}</td>
+  </tr>`;}).join('');
+  document.getElementById('printCopy2').innerHTML=`
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;gap:10px">
+    <div style="display:flex;align-items:center;gap:8px">
+      <img src=\"data:image/png;base64,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\" alt=\"SGA\" style=\"height:32px;width:auto\">
+      <div><div style="font-size:8pt;font-weight:700;letter-spacing:.01em">SOCIÉTÉ GÉNÉRALE</div><div style="font-size:7pt;color:#666">ALGÉRIE</div></div>
+    </div>
+    <div style="flex:1;text-align:center;font-size:9pt;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding-top:4px">BORDEREAU DE REMISE DE CHÈQUES</div>
+    <div style="text-align:right;min-width:155px">
+      <div style="display:flex;align-items:center;gap:5px;justify-content:flex-end;margin-bottom:4px">
+        <span style="font-size:7.5pt;font-weight:600">DATE :</span>
+        <span style="font-family:monospace;font-size:7.5pt;border-bottom:1px solid #000;padding:1px 5px">${dateFmt}</span>
+      </div>
+      <div style="border:1.5px solid #000;padding:3px 6px;text-align:center">
+        <div style="font-size:6.5pt;font-weight:700;text-transform:uppercase;color:#666;letter-spacing:.05em;margin-bottom:2px">NOM OU RAISON SOCIALE</div>
+        <div style="font-size:8pt;font-weight:700">${raison}</div>
+      </div>
+    </div>
+  </div>
+  <table style="width:100%;border-collapse:collapse;font-size:7.5pt;margin-bottom:10px">
+    <thead><tr>
+      <th style="background:#1a1a1a;color:white;font-size:6.5pt;font-weight:600;text-transform:uppercase;letter-spacing:.04em;padding:4px 5px;text-align:left;border:1px solid #1a1a1a;width:21%">ÉTABLISSEMENT PAYEUR</th>
+      <th style="background:#1a1a1a;color:white;font-size:6.5pt;font-weight:600;text-transform:uppercase;letter-spacing:.04em;padding:4px 5px;text-align:left;border:1px solid #1a1a1a;width:13%">LIEU DE PAIEMENT</th>
+      <th style="background:#1a1a1a;color:white;font-size:6.5pt;font-weight:600;text-transform:uppercase;letter-spacing:.04em;padding:4px 5px;text-align:left;border:1px solid #1a1a1a;width:22%">NOM DU TIRÉ</th>
+      <th style="background:#1a1a1a;color:white;font-size:6.5pt;font-weight:600;text-transform:uppercase;letter-spacing:.04em;padding:4px 5px;text-align:left;border:1px solid #1a1a1a;width:13%">N° CHÈQUES</th>
+      <th colspan="2" style="background:#1a1a1a;color:white;font-size:6.5pt;font-weight:600;text-transform:uppercase;letter-spacing:.04em;padding:4px 5px;text-align:left;border:1px solid #1a1a1a;width:23%">MONTANT EN DZD</th>
+    </tr></thead>
+    <tbody>${rowsHtml}</tbody>
+  </table>
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:8px">
+    <div style="display:flex;flex-direction:column;gap:5px">
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:7pt;font-weight:600;text-transform:uppercase;color:#666">Nombre de chèques :</span>
+        <span style="font-family:monospace;font-size:9pt;font-weight:700;border-bottom:1px solid #000;padding:1px 5px">${nb}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:7pt;font-weight:600;text-transform:uppercase;color:#666">N° Compte :</span>
+        <span style="font-family:monospace;font-size:7.5pt;font-weight:600;border-bottom:1px solid #000;padding:1px 5px">${compte}</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:.06em">TOTAL :</span>
+      <div style="display:flex;align-items:stretch;border:2px solid #1a1a1a;gap:0">
+        <div style="font-family:monospace;font-size:10pt;font-weight:700;padding:3px 8px;min-width:90px;text-align:right;background:#f5f5f5;border-right:2px solid #1a1a1a">${tDzd}</div>
+        <div style="font-family:monospace;font-size:10pt;font-weight:700;padding:3px 6px;min-width:32px;text-align:center;color:${tCtsColor}">${tCtsStr}</div>
+      </div>
+    </div>
+    <div style="border:1.5px dashed #ccc;padding:18px 22px 28px;text-align:center;min-width:150px;min-height:60px">
+      <span style="font-size:7pt;text-transform:uppercase;letter-spacing:.07em;color:#666;font-weight:600">Cachet &amp; Signature</span>
+    </div>
+  </div>`;
+}
+
+/* TABS */
+function switchTab(t){
+  document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(e=>e.classList.remove('active'));
+  document.getElementById('tab-'+t).classList.add('active');
+  document.getElementById('view-'+t).classList.add('active');
+  if(t==='history')renderHistory();
+}
+
+/* HISTORY */
+function saveToHistory(){
+  const raison=document.getElementById('raisonSociale').value.trim();
+  const date=document.getElementById('docDate').value;
+  const compte=document.getElementById('numCompte').value.trim();
+  if(!raison){alert('Veuillez remplir le champ "Nom ou Raison Sociale" avant d\'enregistrer.');return;}
+  let tc=0;rows.forEach(r=>{tc+=(parseInt(r.dzd.replace(/\D/g,''))||0)*100+(parseInt(r.cts)||0);});
+  const tDzd=Math.floor(tc/100),tCts=tc%100;
+  const entry={
+    id:Date.now(),date,raison,compte,
+    nb:rows.filter(r=>(parseInt(r.dzd.replace(/\D/g,''))||0)>0).length||rows.length,
+    total:`${tDzd.toLocaleString('fr-DZ')} DZD ${String(tCts).padStart(2,'0')}`,
+    rows:JSON.parse(JSON.stringify(rows))
+  };
+  history.unshift(entry);
+  localStorage.setItem('sgaBordereaux',JSON.stringify(history));
+  renderHistory();
+  const btn=event?.target;
+  if(btn){const o=btn.textContent;btn.textContent='✅ Enregistré!';setTimeout(()=>btn.textContent=o,1800);}
+}
+
+function loadFromHistory(id){
+  const e=history.find(h=>h.id===id);if(!e)return;
+  rows=JSON.parse(JSON.stringify(e.rows));
+  document.getElementById('raisonSociale').value=e.raison;
+  document.getElementById('docDate').value=e.date;
+  document.getElementById('numCompte').value=e.compte||'';
+  render();switchTab('form');
+}
+
+function deleteFromHistory(id){
+  if(!confirm('Supprimer ce bordereau de l\'historique ?'))return;
+  history=history.filter(h=>h.id!==id);
+  localStorage.setItem('sgaBordereaux',JSON.stringify(history));
+  renderHistory();
+}
+
+function clearHistory(){
+  if(!confirm('Vider tout l\'historique ?'))return;
+  history=[];localStorage.setItem('sgaBordereaux','[]');renderHistory();
+}
+
+function renderHistory(){
+  const list=document.getElementById('historyList');
+  document.getElementById('histCount').textContent=`${history.length} bordereau(x)`;
+  if(!history.length){
+    list.innerHTML='<div class="history-empty">Aucun bordereau enregistré.<br><small>Remplissez le formulaire et cliquez sur <strong>💾 Enregistrer</strong>.</small></div>';
+    return;
+  }
+  list.innerHTML=`
+    <div style="padding:10px 20px;text-align:right;border-bottom:1px solid #eee">
+      <button class="btn btn-outline no-print" style="color:#c00;border-color:#c00;font-size:11px;padding:5px 12px" onclick="clearHistory()">🗑 Vider l'historique</button>
+    </div>
+    ${history.map((h,i)=>`
+    <div class="hist-item">
+      <div class="hist-num">${i+1}</div>
+      <div class="hist-info">
+        <div class="h-raison">${h.raison}</div>
+        <div class="h-detail">${h.nb} chèque(s) · Compte: ${h.compte||'—'}</div>
+      </div>
+      <div class="hist-date">${fmtDate(h.date)}</div>
+      <div class="hist-total">${h.total}</div>
+      <div class="hist-actions">
+        <button class="hist-btn hist-btn-load" onclick="loadFromHistory(${h.id})">📂 Charger</button>
+        <button class="hist-btn hist-btn-del" onclick="deleteFromHistory(${h.id})">✕</button>
+      </div>
+    </div>`).join('')}`;
+}
+
+function fmtDate(d){if(!d)return'—';const[y,m,day]=d.split('-');return`${day}/${m}/${y}`;}
+
+function resetForm(){
+  if(!confirm('Nouveau bordereau ? Les données non enregistrées seront perdues.'))return;
+  rows=[];for(let i=0;i<4;i++)rows.push(makeRow());
+  document.getElementById('raisonSociale').value='';
+  document.getElementById('numCompte').value='';
+  document.getElementById('docDate').value=new Date().toISOString().slice(0,10);
+  render();switchTab('form');
+}
+
+init();
+
+window.addEventListener('beforeprint', ()=>{
+  // (empty rows stay visible)
+  // Convert date input to readable text for print
+  const dateEl=document.getElementById('docDate');
+  if(dateEl.value){
+    const[y,m,d]=dateEl.value.split('-');
+    dateEl.dataset.origType='date';
+    dateEl.type='text';
+    dateEl.value=`${d}/${m}/${y}`;
+  }
+  // Hide placeholder text in inputs
+  document.querySelectorAll('input[placeholder]').forEach(el=>{
+    el.dataset.ph = el.placeholder;
+    el.placeholder = '';
+  });
+  // Hide empty select display text
+  document.querySelectorAll('.cheques-table td select').forEach(sel=>{
+    if(!sel.value) sel.classList.add('empty-sel');
+  });
+});
+window.addEventListener('afterprint', ()=>{
+  // Restore date input
+  const dateEl=document.getElementById('docDate');
+  if(dateEl.dataset.origType==='date'){
+    const[d,m,y]=dateEl.value.split('/');
+    dateEl.type='date';
+    dateEl.value=`${y}-${m}-${d}`;
+    delete dateEl.dataset.origType;
+  }
+  document.querySelectorAll('.empty-row').forEach(tr=>tr.classList.remove('empty-row'));
+  document.querySelectorAll('input[placeholder], input[data-ph]').forEach(el=>{
+    if(el.dataset.ph !== undefined){ el.placeholder = el.dataset.ph; delete el.dataset.ph; }
+  });
+  document.querySelectorAll('.empty-sel').forEach(sel=>sel.classList.remove('empty-sel'));
+});
+</script>
+</body>
+</html>
